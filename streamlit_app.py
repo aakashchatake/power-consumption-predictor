@@ -4,16 +4,29 @@ import joblib
 from tensorflow.keras.models import load_model
 import pandas as pd
 
-# Load model and scalers
-model = load_model("lstm_power_model.keras")
-scaler_X = joblib.load("scaler_X (2).pkl")
-scaler_y = joblib.load("scaler_y (2).pkl")
+# Load model and scalers with error handling
+try:
+    model = load_model("lstm_power_model.keras")
+    scaler_X = joblib.load("scaler_X (2).pkl")
+    scaler_y = joblib.load("scaler_y (2).pkl")
+except Exception as e:
+    st.error(f"Error loading model files: {str(e)}")
+    st.error("Please ensure all model files are uploaded to the repository:")
+    st.error("- lstm_power_model.keras")
+    st.error("- scaler_X (2).pkl") 
+    st.error("- scaler_y (2).pkl")
+    st.stop()
 
-# Load dataset for About Data tab
-data = pd.read_excel("Cleaned_Dataset.xlsx")
-data['Datetime'] = pd.to_datetime(data['Datetime'], errors='coerce')
-data.dropna(subset=['Datetime'], inplace=True)
-data.set_index('Datetime', inplace=True)
+# Load dataset for About Data tab with error handling
+try:
+    data = pd.read_excel("Cleaned_Dataset.xlsx")
+    data['Datetime'] = pd.to_datetime(data['Datetime'], errors='coerce')
+    data.dropna(subset=['Datetime'], inplace=True)
+    data.set_index('Datetime', inplace=True)
+except Exception as e:
+    st.error(f"Error loading dataset: {str(e)}")
+    st.error("Please ensure Cleaned_Dataset.xlsx is uploaded to the repository")
+    data = None
 
 # Page setup
 st.set_page_config(page_title="⚡ Power Predictor", page_icon="⚡", layout="wide")
@@ -74,7 +87,10 @@ with tab1:
 # ====================== ABOUT DATA TAB ======================
 with tab2:
     st.header("📊 About Dataset")
-    st.write(f"The dataset contains **{data.shape[0]} rows** and **{data.shape[1]} columns**.")
+    if data is not None:
+        st.write(f"The dataset contains **{data.shape[0]} rows** and **{data.shape[1]} columns**.")
+    else:
+        st.error("Dataset not available - please check file upload")
 
     with st.expander("Column Information & Meaning"):
         st.write("""
@@ -87,13 +103,16 @@ with tab2:
         - **Sub_metering_3**: Energy for AC/heating (Wh)  
         """)
 
-    with st.expander("Column Relationships / Correlation"):
-        st.write("Correlation matrix to show relations between features:")
-        corr = data.corr()
-        st.dataframe(corr.style.background_gradient(cmap='coolwarm'))
+    if data is not None:
+        with st.expander("Column Relationships / Correlation"):
+            st.write("Correlation matrix to show relations between features:")
+            corr = data.corr()
+            st.dataframe(corr.style.background_gradient(cmap='coolwarm'))
 
-    with st.expander("Sample Data"):
-        st.dataframe(data.sample(10))
+        with st.expander("Sample Data"):
+            st.dataframe(data.sample(10))
+    else:
+        st.warning("Dataset features not available - upload Cleaned_Dataset.xlsx to view correlations and samples")
 
 # ====================== MODEL INFO TAB ======================
 with tab3:
